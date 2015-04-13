@@ -16,9 +16,10 @@ request(url, function(error, response, body) {
         var $host = $($('.l_post')[0]);
         var pagenum = Analyze.getMaxPage($pageList.last());
         var hostinfo = Analyze.getPostField(1, $host);
-        var maxpage = 200;
+        var maxpage = 20;
 
-        console.log('本帖地址： ' + $title.text());
+        console.log('本帖地址： ' + url);
+        console.log('本帖名称： ' + $title.text());
         console.log('本帖作者： ' + hostinfo.user_name);
         console.log('最大页码： ' + pagenum);
 
@@ -62,11 +63,18 @@ var Analyze = {
     finish : function(){
         var maxdata = this.data.length;
         var maxusers = this.users.length;
+        var lottery = this.lottery(maxusers);
 
         console.log("重复回复人数： "+maxdata);
         console.log("实际回复人数： "+maxusers);
-        console.log("回复统计：", this.census);
-        // this.write();
+        console.log("中奖人号码： "+lottery.num);
+        console.log("中奖人信息： ");
+        console.log(lottery.user);
+    },
+
+    lottery : function(max){
+        var num = parseInt(Math.random()*max);
+        return {'num':num, 'user':this.users[num]}
     },
 
     write : function(){
