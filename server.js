@@ -16,6 +16,7 @@ request(url, function(error, response, body) {
         var $host = $($('.l_post')[0]);
         var pagenum = Analyze.getMaxPage($pageList.last());
         var hostinfo = Analyze.getPostField(1, $host);
+        var ismax = false; // 是否限制大小
         var maxpage = 20;
 
         console.log('本帖地址： ' + url);
@@ -23,7 +24,7 @@ request(url, function(error, response, body) {
         console.log('本帖作者： ' + hostinfo.user_name);
         console.log('最大页码： ' + pagenum);
 
-        if(pagenum>maxpage){
+        if(ismax && pagenum>maxpage){
             pagenum = maxpage;
             console.log("最多请求 "+maxpage+" 页数据 ");
         }
