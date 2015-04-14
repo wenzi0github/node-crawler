@@ -1,37 +1,75 @@
-var fs = require("fs");
+var express = require('express'); //引入express模块
 var request = require("request");
 var cheerio = require('cheerio');
+var app = express();
+var server = require('http').createServer(app);
+var io = require('socket.io').listen(server);
+var port = 3000;
 
-var url = 'http://tieba.baidu.com/p/';
+app.use('/', express.static(__dirname + '/www')); //指定静态HTML文件的位置
+server.listen(port);
+
+console.log("已监听"+port+"端口，系统正在运行...");
+
+var surl = 'http://tieba.baidu.com/p/';
 var tno = '2632390666'; // 3691211240 2632390666 3692413634
-url += tno;
+
+io.on('connection', function (socket) {
+    socket.emit("system", "login")
+    socket.on("submit", function(tnum){
+        var url = surl + tnum;
+        console.log(url);
+        request(url, function(error, response, body) {
+            if(!error && response.statusCode == 200) {
+                $ = cheerio.load(body);
+
+                var $pageList = $(".l_posts_num .pager_theme_4 a");
+                var $title = $('.core_title_txt');
+                var $host = $($('.l_post')[0]);
+                var pagenum = Analyze.getMaxPage($pageList.last());
+                var hostinfo = Analyze.getPostField(1, $host);
+                var ismax = false; // 是否限制大小
+                var maxpage = 20;
+
+                var result = {'url':url, 'title':$title.text(), 'name':hostinfo.user_name, 'page':pagenum}
+                socket.emit("subResult", result);
+            }
+        });
+    })
+})
 
 //发送请求
-request(url, function(error, response, body) {
-    if(!error && response.statusCode == 200) {
-        $ = cheerio.load(body);
+function getTitle(tnum){
+    url += tnum;
+    console.log(url);
+    request(url, function(error, response, body) {
+        if(!error && response.statusCode == 200) {
+            $ = cheerio.load(body);
 
-        var $pageList = $(".l_posts_num .pager_theme_4 a");
-        var $title = $('.core_title_txt');
-        var $host = $($('.l_post')[0]);
-        var pagenum = Analyze.getMaxPage($pageList.last());
-        var hostinfo = Analyze.getPostField(1, $host);
-        var ismax = false; // 是否限制大小
-        var maxpage = 20;
+            var $pageList = $(".l_posts_num .pager_theme_4 a");
+            var $title = $('.core_title_txt');
+            var $host = $($('.l_post')[0]);
+            var pagenum = Analyze.getMaxPage($pageList.last());
+            var hostinfo = Analyze.getPostField(1, $host);
+            var ismax = false; // 是否限制大小
+            var maxpage = 20;
 
-        console.log('本帖地址： ' + url);
-        console.log('本帖名称： ' + $title.text());
-        console.log('本帖作者： ' + hostinfo.user_name);
-        console.log('最大页码： ' + pagenum);
+            /* console.log('本帖地址： ' + url);
+            console.log('本帖名称： ' + $title.text());
+            console.log('本帖作者： ' + hostinfo.user_name);
+            console.log('最大页码： ' + pagenum);
 
-        if(ismax && pagenum>maxpage){
-            pagenum = maxpage;
-            console.log("最多请求 "+maxpage+" 页数据 ");
+            if(ismax && pagenum>maxpage){
+                pagenum = maxpage;
+                console.log("最多请求 "+maxpage+" 页数据 ");
+            }
+
+            getContent(1, pagenum); */
+            var result = {'url':url, 'name':$title.text(), 'user_name':hostinfo.user_name, 'pagenum':pagenum}
+            socket.emit("subResult", result);
         }
-
-        getContent(1, pagenum);
-    }
-});
+    });
+}
 
 function getContent (page, max){
     var curpage = page || 1;
