@@ -1,0 +1,41 @@
+.global_body{background: #f7f7f7;}
+.main{ width: 776px; margin: 100px auto; }
+.main .content, .main .process{border-radius: 4px;padding: 20px;background: #fff;box-shadow: 1px 1px 4px #d3d3d3;font-size: 15px;}
+.main .content .submit{  padding: 1px 10px;margin-left: 6px;}
+.main .process{margin-top: 10px;  max-height: 400px;overflow: auto;}
+.main .process p{background: #eee; padding: 4px; margin-bottom: 2px;}
+.main .process .warning{color: #f00;}
+
+.layer{
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #333;
+    opacity: 0.7;
+    display: none;
+}
+.escope{
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    margin-left: -250px;
+    margin-top: -100px;
+    background: #fff;
+    color: #333;
+    font-size: 17px;
+    padding: 18px;
+    display: none;
+}
+.escope p{
+    border-bottom: 1px dotted #ccc;
+    margin-bottom: 18px;
+}
+.escope .es_btn{
+    text-align: right;
+    border-bottom: 0;
+}
+.escope .es_btn input{
+    padding: 0 6px;
+}

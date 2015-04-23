@@ -11,14 +11,37 @@ server.listen(port);
 
 console.log("已监听"+port+"端口，系统正在运行...");
 
-var surl = 'http://tieba.baidu.com/p/';
-var tno = '2632390666'; // 3691211240 2632390666 3692413634
-
 io.on('connection', function (socket) {
-    socket.emit("system", "login")
+    // socket.emit("system", {"msg":send("连接成功")})
+    // 获取简单信息，等待用户确认
+    TieBa.socket = socket;
+    Analyze.socket = socket;
+
     socket.on("submit", function(tnum){
-        var url = surl + tnum;
-        console.log(url);
+        socket.emit("system", {"msg":Analyze.send("正在请求数据...")})
+        TieBa.getTitle(tnum);
+    });
+
+    // 获取内容
+    socket.on("content", function(){
+        socket.emit("system", {"msg":Analyze.send("正在解析数据...")})
+        TieBa.getContent(1);
+    })
+})
+
+var TieBa = {
+    surl : 'http://tieba.baidu.com/p/',
+    tnum : 0,
+    isMax : false, //是否限制大小
+    maxPage : 40,
+    pageNum : 0,
+    socket : null,
+
+    getTitle : function (tnum) {
+        var self = this;
+        var url = self.surl + tnum;
+        self.tnum = tnum;
+
         request(url, function(error, response, body) {
             if(!error && response.statusCode == 200) {
                 $ = cheerio.load(body);
@@ -26,68 +49,37 @@ io.on('connection', function (socket) {
                 var $pageList = $(".l_posts_num .pager_theme_4 a");
                 var $title = $('.core_title_txt');
                 var $host = $($('.l_post')[0]);
-                var pagenum = Analyze.getMaxPage($pageList.last());
+                var pageNum = Analyze.getMaxPage($pageList.last());
                 var hostinfo = Analyze.getPostField(1, $host);
-                var ismax = false; // 是否限制大小
-                var maxpage = 20;
-
-                var result = {'url':url, 'title':$title.text(), 'name':hostinfo.user_name, 'page':pagenum}
-                socket.emit("subResult", result);
+                self.pageNum = pageNum;
+                if(!self.isMax){
+                    self.maxPage = pageNum;
+                }
+                var result = {'url':url, 'title':$title.text(), 'name':hostinfo.user_name, 'page':pageNum+'(最多只能请求前'+self.maxPage+'页数据)'}
+                self.socket.emit("subResult", { 'msg':Analyze.send('请求成功'),  'result':result});
             }
         });
-    })
-})
+    },
 
-//发送请求
-function getTitle(tnum){
-    url += tnum;
-    console.log(url);
-    request(url, function(error, response, body) {
-        if(!error && response.statusCode == 200) {
-            $ = cheerio.load(body);
+    getContent : function(page){
+        var self = this;
+        var url = self.surl + self.tnum;
+        request(url+'?pn='+page, function(error, response, body) {
+            if(!error && response.statusCode == 200) {
+                $ = cheerio.load(body);
 
-            var $pageList = $(".l_posts_num .pager_theme_4 a");
-            var $title = $('.core_title_txt');
-            var $host = $($('.l_post')[0]);
-            var pagenum = Analyze.getMaxPage($pageList.last());
-            var hostinfo = Analyze.getPostField(1, $host);
-            var ismax = false; // 是否限制大小
-            var maxpage = 20;
-
-            /* console.log('本帖地址： ' + url);
-            console.log('本帖名称： ' + $title.text());
-            console.log('本帖作者： ' + hostinfo.user_name);
-            console.log('最大页码： ' + pagenum);
-
-            if(ismax && pagenum>maxpage){
-                pagenum = maxpage;
-                console.log("最多请求 "+maxpage+" 页数据 ");
+                $('.l_post').each(function() {
+                    Analyze.addData(Analyze.getPostField(page, $(this)));
+                });
+                Analyze.percent(page, self.maxPage);
+                if(Analyze.per==self.maxPage){
+                    Analyze.finish();
+                }
             }
-
-            getContent(1, pagenum); */
-            var result = {'url':url, 'name':$title.text(), 'user_name':hostinfo.user_name, 'pagenum':pagenum}
-            socket.emit("subResult", result);
+        });
+        if(page<self.maxPage){
+            self.getContent(page+1, self.maxPage);
         }
-    });
-}
-
-function getContent (page, max){
-    var curpage = page || 1;
-    request(url+'?pn='+page, function(error, response, body) {
-        if(!error && response.statusCode == 200) {
-            $ = cheerio.load(body);
-
-            $('.l_post').each(function() {
-                Analyze.addData(Analyze.getPostField(page, $(this)));
-            });
-            Analyze.percent(page, max);
-            if(Analyze.per==max){
-                Analyze.finish();
-            }
-        }
-    });
-    if(page<max){
-        getContent(page+1, max);
     }
 }
 
@@ -98,17 +90,33 @@ var Analyze = {
     users : [],         // 没有重复数据的数组
     per : 0,
     census : {},        // 回复统计
+    socket : null,
+
+    send : function(msg){
+        var date = new Date();
+        var hour = date.getHours();
+        var minute = date.getMinutes();
+        var second = date.getSeconds();
+
+        hour = hour<10 ? '0'+hour : hour;
+        minute = minute<10 ? '0'+minute : minute;
+        second = second<10 ? '0'+second : second;
+
+        return '['+hour+':'+minute+':'+second+'] '+msg;
+    },
 
     finish : function(){
         var maxdata = this.data.length;
         var maxusers = this.users.length;
         var lottery = this.lottery(maxusers);
 
-        console.log("重复回复人数： "+maxdata);
-        console.log("实际回复人数： "+maxusers);
-        console.log("中奖人号码： "+lottery.num);
-        console.log("中奖人信息： ");
-        console.log(lottery.user);
+        //console.log("重复回复人数： "+maxdata);
+        //console.log("实际回复人数： "+maxusers);
+        //console.log("中奖人号码： "+lottery.num);
+        //console.log("中奖人信息： ");
+        //console.log(lottery.user);
+        this.socket.emit("system", {"msg": Analyze.send("重复回复人数： "+maxdata + " 实际回复人数： "+maxusers)});
+        this.socket.emit("system", {"msg": Analyze.send("中奖人： 编号："+lottery.user.user_id+' 姓名：'+lottery.user.user_name+' 页码：'+lottery.user.page+' 楼层：'+lottery.user.post_index)});
     },
 
     lottery : function(max){
@@ -134,7 +142,7 @@ var Analyze = {
     percent : function(page, max){
         this.per++;
         page = page<10 ? '0'+page : page;
-        console.log((new Date()).getTime()+" 已完成：" + page + " , " + this.per + '/' + max );
+        this.socket.emit("system", {"msg": Analyze.send("已完成：" + page + " , " + this.per + '/' + max )});
     },
 
     // 获取帖子最大的页数

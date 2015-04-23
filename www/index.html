@@ -4,57 +4,16 @@
 	<meta charset="UTF-8">
 	<title>贴吧帖子解析</title>
 	<link rel="stylesheet" type="text/css" href="./css/reset.css">
-	<style type="text/css">
-		.global_body{background: #f7f7f7;}
-		.main{ width: 476px; margin: 100px auto; }
-		.main .content, .main .process{border-radius: 4px;padding: 20px;background: #fff;box-shadow: 1px 1px 4px #d3d3d3;font-size: 15px;}
-		.main .content .submit{  padding: 1px 10px;margin-left: 6px;}
-		.main .process{margin-top: 10px;  max-height: 300px;overflow: auto; display: none;}
-		.main .process p{background: #eee; padding: 4px; margin-bottom: 2px;}
-		.main .process .warning{color: #f00;}
-
-		.layer{
-			position: fixed;
-		  	top: 0;
-		  	left: 0;
-		  	width: 100%;
-		  	height: 100%;
-		  	background: #333;
-		  	opacity: 0.7;
-		  	display: none;
-		}
-		.escope{
-			position: absolute;
-		    left: 50%;
-		    top: 50%;
-		    margin-left: -250px;
-		    margin-top: -100px;
-		  	background: #fff;
-		  	color: #333;
-  			font-size: 17px;
-  			padding: 18px;
-  			display: none;
-		}
-		.escope p{
-			border-bottom: 1px dotted #ccc;
-  			margin-bottom: 4px
-		}
-		.escope .es_btn{
-			text-align: right;
-			border-bottom: 0;
-		}
-		.escope .es_btn input{
-			padding: 0 6px;
-		}
-	</style>
+    <link rel="stylesheet" type="text/css" href="./css/style.css">
 </head>
 <body class="global_body">
 	<div class="main">
 		<div class="content">
 			<h2>帖子分析</h2>
-			<form action="" onSubmit="return toCheck();">
+			<form action="" onSubmit="toCheck(); return false;">
 				http://tieba.baidu.com/
 				<input type="text" id="tnum" autofocus="true" autocomplete="off" value="2632390666"  >
+                <input type="hidden" id="last"/>
 				<input type="submit" id="submit" class="submit" value="确定">
 			</form>
 		</div>
@@ -80,54 +39,54 @@
 <script type="text/javascript" src="/socket.io/socket.io.js"></script>
 <script type="text/javascript">
 $(function(){
-	Crawler.socket.on("system", function(type){
-		if(type=="login"){
-			Crawler.log("连接成功");
-			$('.process').show();
-		}
+    var socket = io.connect(null);
+    Crawler.socket = socket;
+    socket.on("connect", function () {
+        Crawler.log('连接成功');
+    })
+    socket.on("system", function(data){
+        Crawler.log(data.msg);
 	});
 
-	Crawler.socket.on("subResult", function(result){
-		Crawler.log("请求数据成功");
+	socket.on("subResult", function(data){
+		Crawler.log(data.msg);
 		$("#submit").removeAttr("disabled");
 		$('.layer, .escope').show();
+        var result = data.result;
 		for(var key in result){
 			$('.'+key).html(key+' : '+result[key]);
 		}
 	});
 
-	$(".es_btn").click(function(){
-		$('.layer, .escope').hide();
-	})
+    $("#ok").click(function(){
+        socket.emit("content", {});
+        $('.layer, .escope').hide();
+    });
+    $("#reset").click(function(){
+        $("#tnum").focus();
+        $("#last").val($("#tnum").val());
+        $('.layer, .escope').hide();
+    })
 });
 
 // onkeyup="this.value=this.value.replace(/\D/g,'')" onafterpaste="this.value=this.value.replace(/\D/g,'')"
 function toCheck(){
 	var tnum = $("#tnum").val();
 	if(tnum===""){
-		console.log("输入不能为空");
+        Crawler.log("输入不能为空", "warning");
 	}else{
 		tnum = tnum.replace(/\D/g,'');
 		if(tnum===""){
 			Crawler.log("输入不合法，请重新输入", "warning");
 		}else{
-			Crawler.log(tnum+" 正在请求数据...");
 			$("#submit").attr("disabled", "disabled");
-			Crawler.submit(tnum);
+            Crawler.socket.emit("submit", tnum);
 		}
 	}
-	
-	return false;
 }
 
 var Crawler = {
-	socket : io.connect(null),
-
-	// 提交数据
-	submit : function(tnum){
-		this.socket.emit("submit", tnum);
-	},
-
+    socket : null,
 	log : function(msg, type){
 		type = type || "";
 		$(".list").append('<p class="'+type+'">'+msg+'</p>');
