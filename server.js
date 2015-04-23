@@ -47,6 +47,12 @@ var TieBa = {
                 $ = cheerio.load(body);
 
                 var $pageList = $(".l_posts_num .pager_theme_4 a");
+
+                if($pageList.length===0){
+                    self.socket.emit("subResult", { 'msg':Analyze.send('帖子不存在或已被删除!'),  'result':false});
+                    return false;
+                }
+
                 var $title = $('.core_title_txt');
                 var $host = $($('.l_post')[0]);
                 var pageNum = Analyze.getMaxPage($pageList.last());

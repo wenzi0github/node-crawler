@@ -51,11 +51,13 @@ $(function(){
 	socket.on("subResult", function(data){
 		Crawler.log(data.msg);
 		$("#submit").removeAttr("disabled");
-		$('.layer, .escope').show();
-        var result = data.result;
-		for(var key in result){
-			$('.'+key).html(key+' : '+result[key]);
-		}
+        if(data.result){
+            $('.layer, .escope').show();
+            var result = data.result;
+            for(var key in result){
+                $('.'+key).html(key+' : '+result[key]);
+            }
+        }
 	});
 
     $("#ok").click(function(){

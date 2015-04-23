@@ -1,6 +1,6 @@
 .global_body{background: #f7f7f7;}
 .main{ width: 776px; margin: 100px auto; }
-.main .content, .main .process{border-radius: 4px;padding: 20px;background: #fff;box-shadow: 1px 1px 4px #d3d3d3;font-size: 15px;}
+.main .content, .main .process{padding: 20px;background: #fff;box-shadow: 1px 1px 4px #d3d3d3;font-size: 15px;}
 .main .content .submit{  padding: 1px 10px;margin-left: 6px;}
 .main .process{margin-top: 10px;  max-height: 400px;overflow: auto;}
 .main .process p{background: #eee; padding: 4px; margin-bottom: 2px;}
