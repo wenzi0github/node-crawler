@@ -3,43 +3,72 @@
 <head>
 	<meta charset="UTF-8">
 	<title>贴吧帖子解析</title>
-	<link rel="stylesheet" type="text/css" href="./css/reset.css">
-    <link rel="stylesheet" type="text/css" href="./css/style.css">
+    <link rel="stylesheet" type="text/css" href="./css/bootstrap.min.css">
+    <style type="text/css">
+    	body{background: #F3F3F3;}
+		.container{margin-top: 100px;}
+		.main{width: 700px; margin: 10px auto;background: #fff;box-shadow: 1px 1px 4px #d3d3d3;padding: 20px;}
+		.content{width: 700px; margin:0 auto;}
+		.content form{font-size: 2em;}
+		.content .form-control{display: inline;width: 85%;font-size: 22px;}
+		.pst{margin-top: 10px; font-size: 15px; }
+		.pst .progress{display: none;}
+		.pst .list{max-height: 400px;overflow: auto;}
+		.pst .list p{padding: 4px; margin-bottom: 2px;}
+		.modal{font-size: 1.6em;}
+		.modal table td:nth-child(1){font-weight: 700; text-align: right;width: 116px;vertical-align: top;}
+    </style>
 </head>
-<body class="global_body">
-	<div class="main">
-		<div class="content">
-			<h2>帖子分析</h2>
-			<form action="" onSubmit="toCheck(); return false;">
-				http://tieba.baidu.com/
-				<input type="text" id="tnum" autofocus="true" autocomplete="off" value="2632390666"  >
-                <input type="hidden" id="last"/>
-				<input type="submit" id="submit" class="submit" value="确定">
-			</form>
+<body>
+	<div class="container">
+		<div class="main">
+			<div class="content">
+				<h2>帖子分析</h2>
+				<form action="" onSubmit="toCheck(); return false;">
+					<input type="text" id="tnum" class="form-control" autofocus="true" autocomplete="off" placeholder="请输入帖子地址"  >
+	                <input type="hidden" id="last"/>
+					<input type="submit" id="submit" class="btn btn-primary" value="确定">
+				</form>
+			</div>
+			<div class="pst" id="pst">
+				<div class="step">
+					<div class="progress">
+					  	<div id="progress-bar" class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%"></div>
+					</div>
+				</div>
+				<div id="list" class="list"><div id="st"></div></div>
+			</div>
 		</div>
-		<div class="process">
-			<div class="step"></div>
-			<div class="list"></div>
-		</div>
+		
 	</div>
-	<div class="layer"></div>
-	<div class="escope" id="escope">
-    	<p class="url"></p>
-    	<p class="title"></p>
-    	<p class="name"></p>
-    	<p class="page"></p>
-    	<p class="es_btn">
-    		<input type="button" class="btn" id="reset" value="重新设置">
-    		<input type="button" class="btn" id="ok" value="确定">
-    	</p>
-    </div>
+	
+	<!-- Modal -->
+	<div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+	  <div class="modal-dialog" role="document">
+	    <div class="modal-content">
+	      <div class="modal-header">
+	        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+	        <h2 class="modal-title" id="myModalLabel">确认帖子信息</h2>
+	      </div>
+	      <div class="modal-body">
+	        
+	      </div>
+	      <div class="modal-footer">
+	        <button type="button" id="reset" class="btn btn-default" data-dismiss="modal">重新设置</button>
+	        <button type="button" id="ok" class="btn btn-primary" data-dismiss="modal">确定</button>
+	      </div>
+	    </div>
+	  </div>
+	</div>
     
 </body>
 <script type="text/javascript" src="./js/jquery-1.11.1.min.js"></script>
+<script type="text/javascript" src="./js/bootstrap.min.js"></script>
 <script type="text/javascript" src="/socket.io/socket.io.js"></script>
 <script type="text/javascript">
 $(function(){
     var socket = io.connect(null);
+    var kk = {'url':'地址', 'title':'标题', 'name':'楼主', 'page':'总页数'};
     Crawler.socket = socket;
     socket.on("connect", function () {
         Crawler.log('连接成功');
@@ -47,27 +76,60 @@ $(function(){
     socket.on("system", function(data){
         Crawler.log(data.msg);
 	});
+	socket.on('progress', function(data){
+		var html = '';
+		var $progress_bar = $('#progress-bar');
+		var per = parseInt(data.count*100/data.sum);
+		$progress_bar.data('aria-valuenow', per).css('width',per+'%').html(per+'%').parent().show();
+
+		html += data.time+'第 '+data.page+' 页已完成，完成度：'+data.count+'/'+data.sum;
+		Crawler.log(html);
+	})
 
 	socket.on("subResult", function(data){
 		Crawler.log(data.msg);
 		$("#submit").removeAttr("disabled");
         if(data.result){
-            $('.layer, .escope').show();
             var result = data.result;
+            var html = '<table class="table">';
             for(var key in result){
-                $('.'+key).html(key+' : '+result[key]);
+            	html += '<tr><td>'+kk[key] + ':</td><td>' +result[key]+'</td></tr>';
             }
+            html += '</table>';
+            $('#myModal').find('.modal-title').html('确认帖子信息');
+            $('#reset').show();
+            $('#myModal').modal().find('.modal-body').html(html);;
         }
 	});
+	socket.on('finish', function(data){
+		var $myModal = $('#myModal');
+		var html = '', user = data.user;
+		html += '总回复人数：'+data.sum+' ，实际回复人数：'+data.real+'<br/>';
+		html += '<h3>中奖人</h3>';
+		html += '<table>';
+		html += '<tr><td>昵称：</td><td><a href="'+data.url+'?pid='+user.post_id+'&cid=0#'+user.post_id+'" target="_blank">'+user.name+'</a> | <a href="http://tieba.baidu.com/im/pcmsg?from='+user.user_id+'" target="_blank">私信他</a></td></tr>';
+		// html += '<tr><td>所在页数：</td><td>'+user.page+'</td></tr>';
+		html += '<tr><td>楼号：</td><td>'+user.post_no+'</td></tr>';
+		html += '<tr><td>内容：</td><td>'+user.content+'</a></td></tr>';
+
+		$myModal.find('.modal-title').html('中奖信息');
+		$('#reset').hide();
+		$myModal.modal({keyboard:false}).find('.modal-body').html(html);
+	})
 
     $("#ok").click(function(){
-        socket.emit("content", {});
-        $('.layer, .escope').hide();
+    	if($(this).attr('status')=='commit'){
+    		$(this).attr('status', 'success');
+    		socket.emit("content", {});
+    	}
     });
     $("#reset").click(function(){
         $("#tnum").focus();
         $("#last").val($("#tnum").val());
         $('.layer, .escope').hide();
+    });
+    $('#tnum').keyup(function(){
+    	$(this).parent().removeClass('has-error');
     })
 });
 
@@ -75,24 +137,23 @@ $(function(){
 function toCheck(){
 	var tnum = $("#tnum").val();
 	if(tnum===""){
-        Crawler.log("输入不能为空", "warning");
+        // Crawler.log("输入不能为空", "warning");
+        $('form').addClass('has-error');
+        $('#tnum').focus();
 	}else{
-		tnum = tnum.replace(/\D/g,'');
-		if(tnum===""){
-			Crawler.log("输入不合法，请重新输入", "warning");
-		}else{
-			$("#submit").attr("disabled", "disabled");
-            Crawler.socket.emit("submit", tnum);
-		}
+		$("#submit").attr("disabled", "disabled");
+		$('#st').html('');
+		$('#progress-bar').css('width', '0%').parent().hide();
+		$('#ok').attr('status', 'commit');
+        Crawler.socket.emit("submit", tnum);
 	}
 }
 
 var Crawler = {
     socket : null,
-	log : function(msg, type){
-		type = type || "";
-		$(".list").append('<p class="'+type+'">'+msg+'</p>');
-		$('.process').scrollTop($(".list").height());
+	log : function(msg){
+		$('#st').append('<p>'+msg+'</p>');
+		$('#list').scrollTop($("#st").height());
 	}
 }
 </script>
