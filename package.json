@@ -5,7 +5,9 @@
   "main": "server.js",
   "dependencies": {
     "cheerio": "^0.19.0",
-    "request": "^2.55.0"
+    "request": "^2.55.0",
+    "express": "",
+    "socket.io"
   },
   "devDependencies": {},
   "scripts": {
@@ -18,5 +20,13 @@
     "cheerio"
   ],
   "author": "wenzi",
-  "license": "ISC"
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wenzi0github/node-crawler.git"
+  },
+  "bugs": {
+    "url": "https://github.com/wenzi0github/node-crawler/issues"
+  },
+  "homepage": "https://github.com/wenzi0github/node-crawler"
 }

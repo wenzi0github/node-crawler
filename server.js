@@ -29,6 +29,10 @@ io.on('connection', function (socket) {
         socket.emit("system", {"msg":Analyze.send("正在解析数据...")})
         TieBa.getContent(1);
     })
+
+    socket.on("disconnect", function(){
+        socket.emit("system", {"msg":Analyze.send("已与服务器断开连接")})
+    })
 })
 
 var TieBa = {
@@ -66,15 +70,15 @@ var TieBa = {
             if(!error && response.statusCode == 200) {
                 $ = cheerio.load(body);
 
-                var $pageList = $(".l_posts_num .pager_theme_4 a");
-                if($pageList.length===0){
+                if($('#pb_content').length===0){
                     self.socket.emit("subResult", { 'msg':Analyze.send('帖子不存在或已被删除!'),  'result':false});
                     return false;
                 }
 
+                var $pageList = $(".l_posts_num .pager_theme_4 a");
                 var $title = $('.core_title_txt');
                 var $host = $($('.l_post')[0]);
-                var pageNum = Analyze.getMaxPage($pageList.last());
+                var pageNum = $pageList.length ? Analyze.getMaxPage($pageList.last()) : 1;
                 var hostinfo = Analyze.getPostField(1, $host);
                 self.pageNum = pageNum;
                 if(!(pageNum>self.maxPage && self.isMax)){
