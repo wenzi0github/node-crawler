@@ -141,11 +141,27 @@ function toCheck(){
         $('form').addClass('has-error');
         $('#tnum').focus();
 	}else{
+		var arr = tnum.split('/');
+        var t_no = 0;
+
+        if(arr.length<5 || (arr[0]!='http:' && arr[0]!='https:') || arr[2]!='tieba.baidu.com' || arr[3]!='p'){
+            Crawler.log('请输入正确的帖子地址')
+            return;
+        }
+        if(arr[4].indexOf('?')>-1){
+            t_no = arr[4].split('?')[0];
+        }else{
+            t_no = arr[4];
+        }
+        url = 'http://tieba.baidu.com/p/'+t_no;
+
+        Crawler.log('正在请求数据..');
+		
 		$("#submit").attr("disabled", "disabled");
 		$('#st').html('');
-		$('#progress-bar').css('width', '0%').parent().hide();
+		$('#progress-bar').css('width', '0%').parent().show();
 		$('#ok').attr('status', 'commit');
-        Crawler.socket.emit("submit", tnum);
+        Crawler.socket.emit("submit", url);
 	}
 }
 
